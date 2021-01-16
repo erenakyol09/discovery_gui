@@ -1,0 +1,309 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
+  * All rights reserved.</center></h2>
+  *
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+#include "adc.h"
+#include "dma.h"
+#include "usart.h"
+#include "gpio.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include "serial_gui.h"
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+#define rx_buffer_size 14
+	int kk=0;
+	int jj=0;
+	char newBuffer[50];
+  char rx_buffer[rx_buffer_size];
+	int numDetec = 0;
+	int ll=0;
+	
+	char packet[50];
+
+	
+	// A mod mesaj hazirlama 
+	char messagges[10][100] = {"Model: Arm Cortex-M4","Version: stm32f767ZI"};
+	
+	// C komutu icin senaryo
+	float P     = 1;
+	float Vrms  = 2;
+	float Irms  = 3;  
+	float pf    = 4;
+	float f     = 5; 
+	float dcCur = 6;  
+	float dcVol = 7;
+	
+	// B komutu icin senaryo
+	float power    = 0;
+	float voltage  = 0;
+	float current  = 0;
+	float resistor = 0;
+
+	
+	void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	
+		for(int i=0;i<50;i++)
+		{
+			if(rx_buffer[i] == 'B')
+			{
+				jj = i;
+				break;
+			}				
+		}
+		
+		ll = 8+10*charToint(rx_buffer[2+jj])+charToint(rx_buffer[3+jj]);
+		
+		for(int i=0;i<50;i++)
+		{
+			newBuffer[i] = rx_buffer[i+jj];
+			if(i==ll || i>=ll)
+				newBuffer[i] = 0;
+		}
+	
+}
+
+
+//void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+//{	
+//	
+//	
+//}
+
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_USART3_UART_Init();
+  MX_ADC1_Init();
+  /* USER CODE BEGIN 2 */
+	HAL_UART_Receive_DMA(&huart3, (uint8_t *)rx_buffer, rx_buffer_size);
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+		 
+				// A 		
+		if(rx_buffer[0] == 'A')
+		{	
+			sendmodA_Packets(&huart3,2,messagges);
+			rx_buffer[0] = '!';
+		}
+		
+		if(newBuffer[0]=='B')
+		{
+			power = power + 1;
+			resistor = resistor + 1;
+			current = current + 1;
+			voltage = voltage + 1; 
+						
+			
+			if(power== 30000)
+			{
+				power   = 0;
+				current = 0;
+				voltage = 0;
+				resistor = 0;
+			}		
+
+			HAL_GPIO_TogglePin(GPIOD,GPIO_PIN_15);
+			receiveAsciiPackets(newBuffer,packet);
+			//power = stringTofloat(packet);			
+			//sendmodB_Packets(&huart3,power,voltage,current,resistor);		
+			newBuffer[0]='!';	
+		for(int i=0;i<rx_buffer_size;i++)
+		{
+			rx_buffer[i] = 0;
+			newBuffer[i] = 0;
+		}
+		}	
+		
+		// C		 
+		if(rx_buffer[0] == 'C')
+		{				
+			/*P     = P     + 1;
+			Vrms  = Vrms  + 1;
+			Irms  = Irms  + 1;
+			pf    = pf    + 1;
+			f     = f     + 1;
+			dcCur = dcCur + 1;
+			dcVol = dcVol + 1;	*/
+			
+			if(P== 1000)
+			{
+				P     = 1 ;
+				Vrms  = 2 ;
+				Irms  = 3 ;
+				pf    = 4 ;
+				f     = 5 ;
+				dcCur = 6 ;
+				dcVol =	7 ;					
+			}	
+			
+			sendmodC_Packets(&huart3,P,Vrms,Irms,pf,f,dcCur,dcVol);
+			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,GPIO_PIN_RESET);
+			rx_buffer[0] = '!';
+		}
+			
+		
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+
+  /* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */
+
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
