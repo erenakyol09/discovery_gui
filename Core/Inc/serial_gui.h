@@ -29,7 +29,7 @@ void readString(UART_HandleTypeDef* huart, char buffer[20]);
 void writeString(UART_HandleTypeDef *huart,char buffer[20]);
 
 //guiden gelen paketleri okuma
-void receiveAsciiPackets(char buffer[50],char packet[50]);
+void receiveAsciiPackets(volatile char buffer[50],char packet[50]);
 
 //guiye  A modundaki paketlerin gonderimi
 void sendmodA_Packets(UART_HandleTypeDef *huart,int number_message,char buffer[number_message][100]);

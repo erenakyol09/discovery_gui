@@ -58,10 +58,11 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 #define rx_buffer_size 14
+
 	int kk=0;
 	int jj=0;
-	char newBuffer[50];
-  char rx_buffer[rx_buffer_size];
+	volatile char newBuffer[50];
+  volatile char rx_buffer[rx_buffer_size];
 	int numDetec = 0;
 	int ll=0;
 	
@@ -81,10 +82,12 @@ void SystemClock_Config(void);
 	float dcVol = 7;
 	
 	// B komutu icin senaryo
-	float power    = 0;
-	float voltage  = 0;
-	float current  = 0;
-	float resistor = 0;
+	float power    = 7777.1;
+	float voltage  = 5555.2;
+	float current  = 1000.3;
+	float resistor = 1111.1;
+	
+	float value    = 100;
 
 	
 	void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -107,7 +110,7 @@ void SystemClock_Config(void);
 			if(i==ll || i>=ll)
 				newBuffer[i] = 0;
 		}
-	
+
 }
 
 
@@ -116,6 +119,9 @@ void SystemClock_Config(void);
 //	
 //	
 //}
+
+int ax = 0;
+int ay = 0;
 
 /* USER CODE END 0 */
 
@@ -157,43 +163,39 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {
-		 
-				// A 		
+  {				
+
+		// A 		
 		if(rx_buffer[0] == 'A')
 		{	
 			sendmodA_Packets(&huart3,2,messagges);
 			rx_buffer[0] = '!';
 		}
-		
+		// B
 		if(newBuffer[0]=='B')
 		{
-			power = power + 1;
-			resistor = resistor + 1;
-			current = current + 1;
-			voltage = voltage + 1; 
+			power    = power    + 1;
+			current  = current  + 1;
+			voltage  = voltage  + 1; 
 						
 			
 			if(power== 30000)
 			{
-				power   = 0;
-				current = 0;
-				voltage = 0;
+				current  = 0;
+				voltage  = 0;
 				resistor = 0;
 			}		
 
 			HAL_GPIO_TogglePin(GPIOD,GPIO_PIN_15);
+			
 			receiveAsciiPackets(newBuffer,packet);
-			//power = stringTofloat(packet);			
-			//sendmodB_Packets(&huart3,power,voltage,current,resistor);		
-			newBuffer[0]='!';	
-		for(int i=0;i<rx_buffer_size;i++)
-		{
-			rx_buffer[i] = 0;
-			newBuffer[i] = 0;
-		}
+			
+			value = stringTofloat(packet);		
+			
+			sendmodB_Packets(&huart3,power,voltage,current,resistor);	
+			
+			newBuffer[0]='!';		
 		}	
-		
 		// C		 
 		if(rx_buffer[0] == 'C')
 		{				
@@ -220,8 +222,7 @@ int main(void)
 			HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14,GPIO_PIN_RESET);
 			rx_buffer[0] = '!';
 		}
-			
-		
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

@@ -30,7 +30,7 @@ char reciveCrc3[1];
 char reciveCrc4[1];
 	
 char sendmodABuf[20][100];
-char sendmodBBuf[20][50];
+char sendmodBBuf[20][50] = {"0000.0","0000.0","0000.0","0000.0"};
 char sendmodCBuf[20][50];
 char sendmodlength[2];
 
@@ -39,6 +39,7 @@ char sendmodBpackets[20][50];
 
 float myBfloatValues[5][20];
 float myCfloatValues[7][20];
+char sixL[20][50];
 
 int numberofMessge = 0;
 int crc_length = 0;
@@ -77,7 +78,7 @@ void writeString(UART_HandleTypeDef *huart,char Tx_buffer[50])
 	HAL_UART_Transmit(huart,(uint8_t*)sendString,sprintf((char *)sendString,"%s",Tx_buffer),10); 	
 }	
 //guiden gelen paketleri okuma
-void receiveAsciiPackets(char buffer[buffer_size],char packet[20])
+void receiveAsciiPackets(volatile char buffer[buffer_size],char packet[20])
 {	
 	for(int i=0;i<=20;i++)
 	{
@@ -175,7 +176,8 @@ void sendmodA_Packets(UART_HandleTypeDef *huart,int number_message,char buffer[n
 }
 //guiye  B modundaki paketlerin gonderimi
 void sendmodB_Packets(UART_HandleTypeDef *huart,float power,float voltage,float current,float resistor)
-{
+{		
+	
 	myBfloatValues[0][0] = power;
 	myBfloatValues[1][0] = voltage;
 	myBfloatValues[2][0] = current;
@@ -188,43 +190,41 @@ void sendmodB_Packets(UART_HandleTypeDef *huart,float power,float voltage,float 
 	*sendCrc4 = 0;
    crc = 0;
 	
-	for(int i=0;i<=3;i++)
+
+//	for(int i=0;i<=3;i++)
+//		{
+//			sprintf(sixL[i],"%.1f",myBfloatValues[i][0]);
+//				for(int j=0;j<strlen(sixL[i]);j++)
+//					sendmodBBuf[i][5-j] = sixL[i][strlen(sixL[i])-j-1];					
+//		}
+			for(int i=0;i<=3;i++)
 		{
-			sprintf(sendmodBBuf[i],"%.3f",myBfloatValues[i][0]);
+			sprintf(sendmodBBuf[i],"%.1f",myBfloatValues[i][0]);
 		}
+	
 	
 	for(int i=0;i<=3;i++)
 		{
 			//her mesajin ilk indeksine B mod secimi girildi
 			sendmodBpackets[i][0] ='B';
 			//her mesajin ikinci indeksine paket sayisi girildi  
-			if(strlen(sendmodBBuf[i]) < 10)
-				{
-					sendmodBpackets[i][2] = '0'; 
-					sprintf(sendmodlength,"%d",strlen(sendmodBBuf[i])+1); 
-					sendmodBpackets[i][3] = sendmodlength[0]; 
-				}
-				
-			if(strlen(sendmodBBuf[i]) >= 10)
-				{
-					sprintf(sendmodlength,"%d",strlen(sendmodBBuf[i])+1); 
-					sendmodBpackets[i][2] = sendmodlength[0]; 
-					sendmodBpackets[i][3] = sendmodlength[1]; 
-				}	
-				
-				sendmodBpackets[0][1] = 'P';
-				sendmodBpackets[1][1] = 'V';
-				sendmodBpackets[2][1] = 'I';
-				sendmodBpackets[3][1] = 'R';
-				
-			for(int j=0;j<=strlen(sendmodBBuf[i])-1;j++)
+
+			sendmodBpackets[i][2] = '0'; 
+			sendmodBpackets[i][3] = '6'; 				
+
+			sendmodBpackets[0][1] = 'P';
+			sendmodBpackets[1][1] = 'V';
+			sendmodBpackets[2][1] = 'I';
+			sendmodBpackets[3][1] = 'R';
+			
+			for(int j=0;j<=strlen(sendmodBBuf[i]);j++)
 				{
 					sendmodBpackets[i][j+4] = sendmodBBuf[i][j];
 				}	
 				
 				for(int j=0;j<=strlen(sendmodBBuf[i]);j++)
 				{
-					crc = crc + sendmodBpackets[i][j+3];
+					crc = crc + sendmodBpackets[i][j+4];
 				}	
 				
 			sprintf(sendCrc ,"%x",crc & 0xF000);
@@ -235,26 +235,14 @@ void sendmodB_Packets(UART_HandleTypeDef *huart,float power,float voltage,float 
 			sendmodBpackets[i][4+strlen(sendmodBBuf[i])] = sendCrc[0];
 			sendmodBpackets[i][5+strlen(sendmodBBuf[i])] = sendCrc2[0];
 			sendmodBpackets[i][6+strlen(sendmodBBuf[i])] = sendCrc3[0];
-			sendmodBpackets[i][7+strlen(sendmodBBuf[i])] = sendCrc4[0];	
-      sendmodBpackets[i][8+strlen(sendmodBBuf[i])] = '\n';				
+			sendmodBpackets[i][7+strlen(sendmodBBuf[i])] = sendCrc4[0];					
 			crc =  0;
 		}
-		
-//		for(int j=0;j<=strlen(sendmodBpackets[numberofMessge])-1;j++)
-//					{	
-//						//HAL_UART_Transmit_DMA(huart,(uint8_t *)&sendmodBpackets[i][j],1);
-//						writeByte(huart,sendmodBpackets[numberofMessge][j]);	
-//					}		
-//		numberofMessge++;
-//					if(numberofMessge == 3)
-//						numberofMessge = 0;
 					
 		for(int i=0;i<3;i++)
 			{
-
 				for(int j=0;j<=strlen(sendmodBpackets[i])-1;j++)
 					{	
-						//HAL_UART_Transmit_DMA(huart,(uint8_t *)&sendmodBpackets[i][j],1);
 						writeByte(huart,sendmodBpackets[i][j]);	
 					}		
 			}	
