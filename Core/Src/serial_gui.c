@@ -13,7 +13,8 @@
 #include <stdio.h>
 #include <math.h>
 
-#define buffer_size 50
+#define buffer_size  50
+#define messageCount 4 
 
 char controlBuffer[20];
 char crcBuffer[4];
@@ -51,6 +52,7 @@ uint16_t crc   = 0;
 int s      = 0;
 int a 	   = 0;
 int k 		 = 0;
+int digit[messageCount]; 
 
 //byte okuma
 char readByte(UART_HandleTypeDef* huart)
@@ -176,7 +178,11 @@ void sendmodA_Packets(UART_HandleTypeDef *huart,int number_message,char buffer[n
 }
 //guiye  B modundaki paketlerin gonderimi
 void sendmodB_Packets(UART_HandleTypeDef *huart,float power,float voltage,float current,float resistor)
-{		
+{	
+	for(int i=0;i<messageCount;i++)
+		{
+			digit[i] = 1;
+		}
 	
 	myBfloatValues[0][0] = power;
 	myBfloatValues[1][0] = voltage;
@@ -190,15 +196,33 @@ void sendmodB_Packets(UART_HandleTypeDef *huart,float power,float voltage,float 
 	*sendCrc4 = 0;
    crc = 0;
 	
-
-//	for(int i=0;i<=3;i++)
-//		{
-//			sprintf(sixL[i],"%.1f",myBfloatValues[i][0]);
-//				for(int j=0;j<strlen(sixL[i]);j++)
-//					sendmodBBuf[i][5-j] = sixL[i][strlen(sixL[i])-j-1];					
-//		}
-			for(int i=0;i<=3;i++)
+		for(int i=0;i<messageCount;i++)
 		{
+			if(myBfloatValues[i][0]>=10)
+			{
+			do{ 
+				myBfloatValues[i][0]=myBfloatValues[i][0]/10; 
+				digit[i]++; 
+				}	
+				while (myBfloatValues[i][0]>=10);
+			}
+		}
+		
+	myBfloatValues[0][0] = power;
+	myBfloatValues[1][0] = voltage;
+	myBfloatValues[2][0] = current;
+	myBfloatValues[3][0] = resistor;
+	
+
+		for(int i=0;i<=3;i++)
+		{
+			if(digit[i] == 1)
+			sprintf(sendmodBBuf[i],"000%.1f",myBfloatValues[i][0]);
+			if(digit[i] == 2)
+			sprintf(sendmodBBuf[i],"00%.1f",myBfloatValues[i][0]);
+			if(digit[i] == 3)
+			sprintf(sendmodBBuf[i],"0%.1f",myBfloatValues[i][0]);
+			if(digit[i] == 4)
 			sprintf(sendmodBBuf[i],"%.1f",myBfloatValues[i][0]);
 		}
 	
@@ -222,10 +246,10 @@ void sendmodB_Packets(UART_HandleTypeDef *huart,float power,float voltage,float 
 					sendmodBpackets[i][j+4] = sendmodBBuf[i][j];
 				}	
 				
-				for(int j=0;j<=strlen(sendmodBBuf[i]);j++)
-				{
-					crc = crc + sendmodBpackets[i][j+4];
-				}	
+			for(int j=0;j<=strlen(sendmodBBuf[i]);j++)
+			{
+				crc = crc + sendmodBpackets[i][j+4];
+			}	
 				
 			sprintf(sendCrc ,"%x",crc & 0xF000);
 			sprintf(sendCrc2,"%x",crc & 0x0F00);
@@ -246,6 +270,10 @@ void sendmodB_Packets(UART_HandleTypeDef *huart,float power,float voltage,float 
 						writeByte(huart,sendmodBpackets[i][j]);	
 					}		
 			}	
+		for(int i=0;i<messageCount;i++)
+		{
+			digit[i] = 1;
+		}
 }	
 //guiye  C modundaki paketlerin gonderimi
 void sendmodC_Packets(UART_HandleTypeDef *huart,float P,float Vrms,float Irms,float pf,float f,float dcCur,float dcVol)

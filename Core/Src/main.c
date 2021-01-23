@@ -82,10 +82,10 @@ void SystemClock_Config(void);
 	float dcVol = 7;
 	
 	// B komutu icin senaryo
-	float power    = 7777.1;
-	float voltage  = 5555.2;
-	float current  = 1000.3;
-	float resistor = 1111.1;
+	float power    = 0;
+	float voltage  = 0;
+	float current  = 0;
+	float resistor = 0;
 	
 	float value    = 100;
 
