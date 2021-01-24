@@ -27,6 +27,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "serial_gui.h"
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -123,6 +124,16 @@ void SystemClock_Config(void);
 int ax = 0;
 int ay = 0;
 
+uint8_t Cmd_End[3] = {0xFF,0xFF,0xFF};  // command end sequence
+void NEXTION_SendString (char *ID, char *string)
+{
+	char buf[50];
+	int len = sprintf (buf, "%s.txt=\"%s\"", ID, string);
+	HAL_UART_Transmit(&huart6, (uint8_t *)buf, len, 1000);
+	HAL_UART_Transmit(&huart6, Cmd_End, 3, 1000);
+}
+
+char buf2[50];
 /* USER CODE END 0 */
 
 /**
@@ -156,6 +167,7 @@ int main(void)
   MX_DMA_Init();
   MX_USART3_UART_Init();
   MX_ADC1_Init();
+  MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
 	HAL_UART_Receive_DMA(&huart3, (uint8_t *)rx_buffer, rx_buffer_size);
   /* USER CODE END 2 */
@@ -175,8 +187,8 @@ int main(void)
 		if(newBuffer[0]=='B')
 		{
 			power    = power    + 1;
-			current  = current  + 1;
-			voltage  = voltage  + 1; 
+			current  = current  + 2;
+			voltage  = voltage  + 3; 
 						
 			
 			if(power== 30000)
@@ -191,6 +203,9 @@ int main(void)
 			receiveAsciiPackets(newBuffer,packet);
 			
 			value = stringTofloat(packet);		
+			sprintf (buf2, "%.1f",value);
+			NEXTION_SendString("t0", "GUI VALUE");
+	    NEXTION_SendString("t1", buf2);	
 			
 			sendmodB_Packets(&huart3,power,voltage,current,resistor);	
 			

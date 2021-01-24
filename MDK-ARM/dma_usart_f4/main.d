@@ -36,3 +36,4 @@ dma_usart_f4\main.o: ../Core/Inc/dma.h
 dma_usart_f4\main.o: ../Core/Inc/usart.h
 dma_usart_f4\main.o: ../Core/Inc/gpio.h
 dma_usart_f4\main.o: ../Core/Inc/serial_gui.h
+dma_usart_f4\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
